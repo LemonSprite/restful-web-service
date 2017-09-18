@@ -1,40 +1,21 @@
 'use strict';
 
-const path = require('path');
-let chai = require('chai');
-let chaiAsPromised = require('chai-as-promised');
-chai.use(chaiAsPromised);
-global.chai = chai;
-chai.should();
+require('./global-regist');
 
-require('../global_regist');
 const web = require('../servers/web');
+const initDatabase = require('./init').initDatabase;
 
-global.requestSuccess = (res) => {
-  res.RetSucceed.should.equal(true);
-  res.Succeed.should.equal(true);
-  res.Code.should.equal(200);
-};
+const testDirs = ['controllers', 'services'];
 
-global.requestFailed = (res) => {
-  res.RetSucceed.should.equal(true);
-  res.Succeed.should.equal(false);
-  res.Code.should.equal(500);
-};
-
-describe('start servers', function() {
-  this.timeout(60000);
-  before(function() {
-    web.start();
-  });
-  it('start servers', () => {
-  });
+test.before(async () => {
+  await web.start();
+  await cache.flushdb();
+  if (config.mysql.forceSync) {
+    await initDatabase(require('../models'));
+  }
 });
 
-describe('start test web', () => {
-  require(path.join(__dirname, 'web'));
-});
-
-describe('start test admin', () => {
-  require(path.join(__dirname, 'admin'));
+testDirs.forEach(dir => {
+  fs.readdirSync(path.join(__dirname, dir))
+    .forEach(file => require(path.join(__dirname, dir, file)));
 });

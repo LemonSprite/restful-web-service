@@ -45,21 +45,20 @@ app.use(expressValidator(validatorConfig));
 app.use(router);
 
 app.use(function (req, res, next) {
-  next({status: 'pageNotFound', code: 404});
+  next({code: 404});
 });
 
 // 错误处理
 app.use(finallyResp({
   format: 'JSON',
-  encoding: 'utf8',
-  views: {}
+  encoding: 'utf8'
 }));
 
 function start() {
   app.listen(config.web.port, function () {
     logger.info(config.web.name, config.web.url, 'start up');
   });
-  return db.sequelize.sync({force: false}).catch((err) => {
+  return db.sequelize.sync({force: config.mysql.forceSync}).catch((err) => {
     logger.error(err);
     process.exit(1);
   });
