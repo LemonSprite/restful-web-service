@@ -4,9 +4,11 @@ module.exports = {
   web: {
     
   },
+
   mysql: {
     
   },
+  
   log: {
     console: false
   }

@@ -10,7 +10,7 @@ const base = [
   //     desc: 对应code和status的描述
   
   // 如果客户端或浏览器只关心成功或失败：
-  //     判断 succeed 是否为 true 或者 判断 code 是否为 0
+  //     判断 succeed 是否为 true 或者 判断 code 是否为 200
   //
   // 如果客户端或浏览器关心失败的具体原因：
   //     通过 code 获取具体原因，并给出相关提示语
@@ -19,17 +19,18 @@ const base = [
   {statusCode: 200, succeed: true, code: 200, status: '', desc: 'success'},
   {statusCode: 500, succeed: false, code: 500, status: '', desc: ''},
   {statusCode: 404, succeed: true, code: 404, status: '', desc: 'The interface does not exist'},
-  {statusCode: 403, succeed: true, code: 403, status: 'noAuth', desc: 'Verify that it does not pass or has no permissions'}
+  {statusCode: 403, succeed: true, code: 403, status: 'noAuth', desc: 'Verify that it does not pass or has no permissions'},
+  {statusCode: 400, succeed: true, code: 400, status: '', desc: 'param error'},
 ];
 
-const statusToCode = {};
-const codeToStatus = {};
+const STATUS = {};
+const CODE = {};
 
 base.forEach(item => {
-  statusToCode[item.status] = codeToStatus[item.code] = item;
+  STATUS[item.status] = CODE[item.code] = item;
 });
 
 module.exports = {
-  statusToCode,
-  codeToStatus
+  STATUS,
+  CODE
 };

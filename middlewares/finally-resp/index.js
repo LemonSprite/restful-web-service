@@ -1,9 +1,6 @@
 'use strict';
 
-const http = require('http');
-const debug = require('debug')('middlewares:finallyResp');
-
-const codeToStatus = require('./defines').codeToStatus;
+const CODE = require('./defines').CODE;
 
 const JSONSTRING = 'JSONString';
 const ENCONDING = 'utf8';
@@ -13,14 +10,11 @@ const ENCONDING = 'utf8';
  * @param {Object} options
  * @param {Object} [options.format='JSONString'] - 默认接口返回的数据格式 JSON 或 JSONString
  * @param {Object} [options.enconding='utf8']    - 默认接口返回的数据编码
- * @param {Object} [options.views]               - 默认模板，如 view[500] = '500.ejs'
  * @returns {Function}
  */
-module.exports = function (options) {
-  options = options || {};
-  let defaultFormat = options.format || JSONSTRING;
-  let enconding = options.enconding || ENCONDING;
-  let views = options.views;
+module.exports = function (options = {}) {
+  const defaultFormat = options.format || JSONSTRING;
+  const enconding = options.enconding || ENCONDING;
 
   /**
    * finallyResp
@@ -47,81 +41,44 @@ module.exports = function (options) {
         msg    : result.message
       };
     }
-    debug('finallyResp', result);
-    let final = codeToStatus[result.code];
+
+    const final = CODE[result.code];
 
     if (!final) {
       throw new Error('result.code undefined!');
     }
 
-    let url  = req.url;
-    let msg  = result.msg || final.desc;
-    let ext  = result.ext || {};
-    let view = result.view || views[final.statusCode] || final.view;
-    let page = result.page;
-    let err  = result.err;
-    let desc = result.desc || final.desc;
+    const msg    = result.msg || final.desc;
+    const ext    = result.ext || {};
+    const err    = result.err;
+    const desc   = result.desc || final.desc;
+    const format = result.format || req.query.format || defaultFormat;
 
-    function dealError(statusCode, err, view) {
-      res.status(statusCode);
-      let errorView = result.errorView || views[statusCode] || view;
-      if (!errorView) {
-        res.end(http.STATUS_CODES[statusCode]);
-      } else {
-        res.render(errorView, {msg: msg, err: err});
-      }
+    if (err) {
+      logError(req, err);
     }
 
-    function logAndDealError(url, statusCode, err, view) {
-      logError(url, err);
-      dealError(statusCode, err, view);
-    }
+    const retObj = {
+      RetSucceed : true,
+      Succeed    : final.succeed,
+      Code       : final.code,
+      Desc       : desc,
+      Message    : msg,
+      ExtData    : ext
+    };
 
-    if (view) {
-      if (err) {
-        logAndDealError(url, 500, err, view);
-      } else {
-        res.render(view, msg, (err, html) => {
-          if (err) {
-            logAndDealError(url, 500, err, view);
-          } else {
-            res.send(html);
-          }
-        });
-      }
-    } else if (page) {
-      try {
-        res.send(page);
-      } catch (e) {
-        logAndDealError(url, 404, e);
-      }
+    if (format === JSONSTRING) {
+      res.send(JSON.stringify(retObj));
     } else {
-      if (err) {
-        logError(url, err);
-      }
-      let retObj = {
-        RetSucceed : true,
-        Succeed    : final.succeed,
-        Code       : final.code,
-        Desc       : desc,
-        Message    : msg,
-        ExtData    : ext
-      };
-
-      let format = result.format || req.query.format || defaultFormat;
-      if (format === JSONSTRING) {
-        res.send(JSON.stringify(retObj));
-      } else {
-        res.json(retObj);
-      }
+      res.json(retObj);
     }
   };
 };
 
-function logError(url, err) {
+function logError(req, err) {
   if (err instanceof Error || _.isError(err)) {
-    logger.error(`\n\nError Begin\n\n${url}\n${err.stack}\n\nError End\n`);
+    logger.error('\nError Begin\n', err, '\n', req.method, req.url, '\nError End\n');
   } else {
-    logger.warn(`\nWarn Begin\n#${err}\n${url}\nWarn End`);
+    logger.warn('\nWarn Begin\n', err, '\n', req.method, req.url, '\nWarn End\n');
   }
 }

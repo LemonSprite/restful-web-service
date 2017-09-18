@@ -9,6 +9,7 @@ module.exports = {
     port: 8888,
     name: pkg.name
   },
+
   log: {
     dir            : '../logs',
     nolog          : /\.(js|css|png|jpg|jpeg|ico|svg|gif)/,
@@ -17,16 +18,19 @@ module.exports = {
     level          : 'AUTO',
     console        : true
   },
+
   redis: {
     host: '127.0.0.1',
     port: 6379,
     // db: 8,
     password: ''
   },
+
   redisSession: {
     host: '127.0.0.1',
     port: 6379
   },
+  
   mysql: {
     host: '127.0.0.1',
     username: 'root',
