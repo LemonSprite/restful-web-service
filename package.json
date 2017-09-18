@@ -4,7 +4,8 @@
   "description": "datacenter",
   "main": "app.js",
   "scripts": {
-    "test": "mocha test/ --bail"
+    "test": "cross-env NODE_ENV=test-ava ava test/index.js --fail-fast -v",
+    "test-cov": "cross-env NODE_ENV=test-ava nyc --reporter=html --reporter=text ava test/index.js --fail-fast -v"
   },
   "dependencies": {
     "bluebird": "^3.5.0",
