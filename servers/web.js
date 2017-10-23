@@ -19,7 +19,7 @@ const app = express();
 // 防止攻击者可能会使用该头（缺省情况下已启用）来检测运行 Express 的应用程序，然后发动针对特定目标的攻击。
 app.disable('x-powered-by');
 
-// 对响应进行 gzip 压缩，降低响应主体的大小，提高 web 应用程序的速度
+// 对响应进行 gzip 压缩，降低响应主体的大小，提高 web 应用程序的速度 (使用 nginx 进行 gzip 压缩则无需此中间件)
 app.use(compression());
 
 // 在 Response Headers 里添加 X-Response-Time 首部来显示响应的时间
