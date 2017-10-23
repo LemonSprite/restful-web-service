@@ -33,7 +33,7 @@ module.exports = function (options = {}) {
    * @returns {*}
    */
   return function finallyResp(result, req, res, next) {
-    if (_.isError(result)) {
+    if (result instanceof Error) {
       result = {
         status : 'error',
         code   : 500,
@@ -45,33 +45,21 @@ module.exports = function (options = {}) {
     const final = CODE[result.code];
 
     if (!final) {
-      throw new Error('result.code undefined!');
+      throw new Error('finallyResp: code error!');
     }
 
-    const msg    = result.msg || final.desc;
-    const ext    = result.ext || {};
-    const err    = result.err;
-    const desc   = result.desc || final.desc;
-    const format = result.format || req.query.format || defaultFormat;
-
-    if (err) {
-      logError(req, err);
+    if (result.err) {
+      logError(req, result.err);
     }
 
-    const retObj = {
+    return res.json({
       RetSucceed : true,
       Succeed    : final.succeed,
       Code       : final.code,
-      Desc       : desc,
-      Message    : msg,
-      ExtData    : ext
-    };
-
-    if (format === JSONSTRING) {
-      res.send(JSON.stringify(retObj));
-    } else {
-      res.json(retObj);
-    }
+      Desc       : result.desc || final.desc,
+      Message    : result.msg || final.desc,
+      ExtData    : result.ext || {}
+    });
   };
 };
 
