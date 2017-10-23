@@ -2,20 +2,7 @@
 
 const CODE = require('./defines').CODE;
 
-const JSONSTRING = 'JSONString';
-const ENCONDING = 'utf8';
-
-/**
- * finallyResp
- * @param {Object} options
- * @param {Object} [options.format='JSONString'] - 默认接口返回的数据格式 JSON 或 JSONString
- * @param {Object} [options.enconding='utf8']    - 默认接口返回的数据编码
- * @returns {Function}
- */
-module.exports = function (options = {}) {
-  const defaultFormat = options.format || JSONSTRING;
-  const enconding = options.enconding || ENCONDING;
-
+module.exports = () => {
   /**
    * finallyResp
    * @param {Object}          result              - 处理前的结果对象
@@ -32,7 +19,7 @@ module.exports = function (options = {}) {
    * @param {Function}        next                - app.next
    * @returns {*}
    */
-  return function finallyResp(result, req, res, next) {
+  return (result, req, res, next) => {
     if (result instanceof Error) {
       result = {
         status : 'error',
@@ -64,7 +51,7 @@ module.exports = function (options = {}) {
 };
 
 function logError(req, err) {
-  if (err instanceof Error || _.isError(err)) {
+  if (err instanceof Error) {
     logger.error('\nError Begin\n', err, '\n', req.method, req.url, '\nError End\n');
   } else {
     logger.warn('\nWarn Begin\n', err, '\n', req.method, req.url, '\nWarn End\n');
