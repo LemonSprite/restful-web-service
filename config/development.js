@@ -2,10 +2,10 @@
 
 module.exports = {
   web: {
-    
+
   },
-  
+
   mysql: {
-    
+
   }
 };

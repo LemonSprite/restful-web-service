@@ -31,8 +31,8 @@
     utils: true
     logger: true
     db: true
-    models: true
     config: true
+    handleError: true
 
   # "off"   or 0 - turn the rule off
   # "warn"  or 1 - turn the rule on as a warning (doesn’t affect exit code)

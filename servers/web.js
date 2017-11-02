@@ -1,17 +1,16 @@
 'use strict';
 
 const express = require('express');
-const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 const expressSession = require('express-session');
 const SessStore = require('connect-redis')(expressSession);
-const responseTime = require('response-time');
 const compression = require('compression');
-const expressValidator = require('express-validator');
+const responseTime = require('response-time');
 
 const router = require('../routes');
 const finallyResp = require('../middlewares/finally-resp');
-const validatorConfig = require('../middlewares/param-validator/config');
+const apiNotExist = require('../middlewares/api-not-exist');
 
 const app = express();
 
@@ -25,11 +24,13 @@ app.use(compression());
 // 在 Response Headers 里添加 X-Response-Time 首部来显示响应的时间
 app.use(responseTime());
 
-// 记录日志
 app.use(logger.log4js.connectLogger(logger, config.log));
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
+
 app.use(cookieParser());
+
 app.use(expressSession({
   name              : 'test',
   proxy             : true,
@@ -40,25 +41,17 @@ app.use(expressSession({
   cookie            : {maxAge: 1000 * 60 * 60 * 24 * 7}
 }));
 
-app.use(expressValidator(validatorConfig));
-
 app.use(router);
 
-app.use(function (req, res, next) {
-  next({code: 404});
-});
+app.use(apiNotExist());
 
-// 错误处理
-app.use(finallyResp({
-  format: 'JSON',
-  encoding: 'utf8'
-}));
+app.use(finallyResp());
 
 function start() {
   app.listen(config.web.port, function () {
     logger.info(config.web.name, config.web.url, 'start up');
   });
-  return db.sequelize.sync({force: config.mysql.forceSync}).catch((err) => {
+  return db.sequelize.sync({force: config.mysql.forceSync}).catch(err => {
     logger.error(err);
     process.exit(1);
   });

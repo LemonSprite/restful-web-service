@@ -55,7 +55,7 @@ const customSanitizers = {
 
 // 自定义错误格式化
 function errorFormatter(param, msg, value) {
-  let namespace = param.split('.');
+  const namespace = param.split('.');
   let formParam = namespace.shift();
 
   while (namespace.length) {

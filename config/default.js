@@ -40,6 +40,7 @@ module.exports = {
     // connectTimeout: 5000,
     // waitForConnections: true,
     // connectionLimit: 50,
-    logging: true
+    logging: true,
+    forceSync: false
   }
 };

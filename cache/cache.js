@@ -21,11 +21,16 @@ module.exports = {
 
   zrank,
   zrange,
+  zrevrange,
   zcount,
   zadd,
   zcard,
   zrem,
   zremrangebyscore,
+
+  pipeline,
+  scan,
+  hscan,
 
   del,
   ttl,
@@ -36,17 +41,22 @@ module.exports = {
 };
 
 async function set(key, value, expire) {
-  value = JSON.stringify(value);
-  await redis.set(key, value);
+  await redis.set(key, JSON.stringify(value));
   await setExpire(key, expire);
 }
 
-async function get(key, func, expire, refresh) {
+async function get(key, func, expire) {
   const value = await redis.get(key);
-  if (value && !refresh) {
+  if (value) {
     return JSON.parse(value);
   } else {
-    return getCacheFromFunc(key, func, expire);
+    if (typeof func === 'function') {
+      const content = await func();
+      await set(key, content, expire);
+      return content;
+    } else {
+      return null;
+    }
   }
 }
 
@@ -55,17 +65,22 @@ function incr(key, value = 1) {
 }
 
 async function hset(key, field, value, expire) {
-  value = JSON.stringify(value);
-  await redis.hset(key, field, value);
+  await redis.hset(key, field, JSON.stringify(value));
   await setExpire(key, expire);
 }
 
-async function hget(key, field, func, expire, refresh) {
+async function hget(key, field, func, expire) {
   const value = await redis.hget(key, field);
-  if (value && !refresh) {
+  if (value) {
     return JSON.parse(value);
   } else {
-    return getCacheFromFunc({key, field}, func, expire);
+    if (typeof func === 'function') {
+      const content = await func();
+      await hset(key, field, content, expire);
+      return content;
+    } else {
+      return null;
+    }
   }
 }
 
@@ -95,13 +110,26 @@ function srem(key, member) {
 }
 
 async function zrank(key, member, func) {
-  await getMemberIfEmpty(key, func);
+  await getCacheIfEmpty(key, func);
   return redis.zrank(key, member);
 }
 
-async function zrange(key, start, end, func) {
-  await getMemberIfEmpty(key, func);
-  return redis.zrange(key, start, end);
+async function zrange(key, start, end, func, opts) {
+  await getCacheIfEmpty(key, func);
+  if (opts) {
+    return redis.zrange(key, start, end, opts);
+  } else {
+    return redis.zrange(key, start, end);
+  }
+}
+
+async function zrevrange(key, start, end, func, opts) {
+  await getCacheIfEmpty(key, func);
+  if (opts) {
+    return redis.zrevrange(key, start, end, opts);
+  } else {
+    return redis.zrevrange(key, start, end);
+  }
 }
 
 function zcount(key, min, max) {
@@ -112,8 +140,8 @@ function zremrangebyscore(key, min, max) {
   return redis.zremrangebyscore(key, min, max);
 }
 
-function zadd(key, [score, member]) {
-  return redis.zadd(key, [score, member]);
+function zadd(key, value) {
+  return redis.zadd(key, value);
 }
 
 function zcard(key) {
@@ -122,6 +150,22 @@ function zcard(key) {
 
 function zrem(key, member) {
   return redis.zrem(key, member);
+}
+
+function pipeline() {
+  return redis.pipeline();
+}
+
+function scan({match, count}, dataFunc, endFunc = () => null) {
+  const stream = redis.scanStream({match, count});
+  stream.on('data', dataFunc);
+  stream.on('end', endFunc);
+}
+
+function hscan(key, {match, count}, dataFunc, endFunc = () => null) {
+  const stream = redis.hscanStream(key, {match, count});
+  stream.on('data', dataFunc);
+  stream.on('end', endFunc);
 }
 
 function ttl(key) {
@@ -140,20 +184,11 @@ function genKey() {
   return Array.from(arguments).join(':');
 }
 
-async function getMemberIfEmpty(key, func) {
-  if (_.isFunction(func) && (await isZsetEmpty(key))) {
-    return getMemberFromFunc(key, func);
-  }
-}
-
-async function isZsetEmpty(key) {
-  return !(await zcard(key));
-}
-
-async function getMemberFromFunc(key, func) {
-  const result = await func();
-  for (const [score, member] of result) {
-    await zadd(key, [score, member]);
+async function getCacheIfEmpty(key, func) {
+  if (typeof func === 'function' && !(await redis.zcard(key))) {
+    const ret = await func();
+    const values = ret.reduce((arr, val) => arr.concat(val), []);
+    return values.length &&  redis.zadd(key, values);
   }
 }
 
@@ -161,30 +196,4 @@ function setExpire(key, expire) {
   if (Number.isInteger(expire)) {
     return redis.expire(key, expire);
   }
-}
-
-function getCacheFromFunc(key, func, expire) {
-  if (_.isFunction(func)) {
-    return execFuncForCache(key, func, expire);
-  } else {
-    return noCache();
-  }
-}
-
-async function execFuncForCache(key, func, expire) {
-  const value = await func();
-  await setCache(key, value, expire);
-  return value;
-}
-
-async function setCache(key, value, expire) {
-  if (_.isObject(key)) {
-    await hset(key.key, key.field, value, expire);
-  } else {
-    await set(key, value, expire);
-  }
-}
-
-function noCache() {
-  return null;
 }

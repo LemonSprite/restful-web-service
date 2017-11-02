@@ -3,7 +3,7 @@
 const expressValidator = require('express-validator');
 
 const validateConf = require('./config');
-const validateMods = require('../../validations');
+const validateMods = require('../../valications');
 
 const sanitizeMap = {
   isInt        : 'toInt',
@@ -16,28 +16,40 @@ const sanitizeMap = {
 };
 
 // 初始化参数验证中间件
-module.exports = function(router) {
+module.exports = router => {
   router.use(expressValidator(validateConf));
-  // 遍历 Validation 下每一个 api validation，并初始化对应的路由中间件
-  _.forEach(validateMods, mod => {
-    _.forEach(mod, api => {
+  Object.values(validateMods).forEach(mod => {
+    Object.values(mod).forEach(api => {
       const {method, route, schema} = api;
       router[method](route, addDefaultValue(schema), validateReq(schema));
     });
   });
 };
 
+// 根据 schema 定义添加默认值
+function addDefaultValue(schema) {
+  return (req, res, next) => {
+    for (const field in schema) {
+      const opts = schema[field];
+      if (('defaultValue' in opts) && opts.in) {
+        req[opts.in][field] = req[opts.in][field] || opts.defaultValue;
+      }
+    }
+    return next();
+  };
+}
+
 // 根据 schema 验证 req 表单
 function validateReq(schema) {
-  return async function (req, res, next) {
+  return async (req, res, next) => {
     if (req.checked) {
       return next();
     }
 
     const newSchema = _.cloneDeep(schema);
-    for (const key in newSchema) {
-      if ('defaultValue' in newSchema[key]) {
-        delete newSchema[key].defaultValue;
+    for (const field in newSchema) {
+      if ('defaultValue' in newSchema[field]) {
+        delete newSchema[field].defaultValue;
       }
     }
 
@@ -47,25 +59,24 @@ function validateReq(schema) {
       reqFilter(schema, req, next);
     } else {
       const errors = result.useFirstErrorOnly().array();
-      const errMsg = `参数${errors[0].param}验证错误`;
-      return next({code: 500, msg: errMsg});
+      return next({code: 400, msg: errors[0].msg});
     }
   };
 }
 
 // 根据 schema 过滤 req 参数
 function reqFilter(schema, req, next) {
-  ['query', 'params', 'body'].forEach(paramForm => {
-    Object.keys(req[paramForm]).forEach(key => {
-      const param = schema[key];
-      if (!(param && param.in && param.in === paramForm)) {
-        return delete req[paramForm][key];
+  ['query', 'params', 'body'].forEach(where => {
+    Object.keys(req[where]).forEach(field => {
+      const opts = schema[field];
+      if (!(opts && opts.in && opts.in === where)) {
+        return delete req[where][field];
       }
 
       // 遍历 sanitizeMap, 查找 schema 验证的字段有没有对应的验证类型，如果有，则调用数据转换方法
       for (const sanitizeKey in sanitizeMap) {
-        if (param[sanitizeKey]) {
-          req.sanitize(key)[sanitizeMap[sanitizeKey]]();
+        if (opts[sanitizeKey]) {
+          req.sanitize(field)[sanitizeMap[sanitizeKey]]();
         }
       }
     });
@@ -73,18 +84,4 @@ function reqFilter(schema, req, next) {
   // 防止进入其他路由
   req.checked = true;
   return next();
-}
-
-
-// 根据 schema 定义添加默认值
-function addDefaultValue(schema) {
-  return function (req, res, next) {
-    for (const key in schema) {
-      const param = schema[key];
-      if (('defaultValue' in param) && param.in) {
-        req[param.in][key] = req[param.in][key] || param.defaultValue;
-      }
-    }
-    return next();
-  };
 }

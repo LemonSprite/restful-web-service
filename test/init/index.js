@@ -1,18 +1,19 @@
 'use strict';
 
+// wu wai jian fang qian mian
 const models = [
-    'User',
-    'Product'
-    // ...
+  'User',
+  'Product'
+  // ...
 ];
 
-async function initDatabase(db) {
-  for(const model of models) {
-    await db[model].bulkCreate(require(`./data/${model}.json`));
+async function initDatabase(testDB) {
+  for (const model of models) {
+    await testDB[model].bulkCreate(require(`./data/${model}.json`));
   }
 }
 
 module.exports = {
-    models,
-    initDatabase
+  models,
+  initDatabase
 };

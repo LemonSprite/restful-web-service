@@ -1,8 +1,6 @@
 'use strict';
 
 const userService = require('../../../services/user');
-const handleError = require('../../../middlewares/error-handle');
-const paramValidator = require('../../../middlewares/param-validator');
 
 module.exports = handleError({
   login,

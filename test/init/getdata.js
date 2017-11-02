@@ -43,8 +43,10 @@ const DB = Object.assign({
 }, db);
 
 async function getInitData() {
-  for(const model of models) {
+  for (const model of models) {
     const data = await DB[model].findAll();
     fs.writeFile(`${__dirname}/data/${model}.json`, JSON.stringify(data));
   }
 }
+
+getInitData();

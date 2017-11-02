@@ -1,9 +1,10 @@
 'use strict';
 
-const cron = require('cron');
+const CronJob = require('cron').CronJob;
 
 exports.init = function () {
-  new cron.CronJob('0 10 * * * *', () => {  // 10 minutes
+  // 10 minutes
+  new CronJob('0 10 * * * *', () => {
     console.log('I am cron task.');
   });
 };

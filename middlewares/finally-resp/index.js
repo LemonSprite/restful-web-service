@@ -2,23 +2,23 @@
 
 const CODE = require('./defines').CODE;
 
+/**
+ * finallyResp
+ * @param {Object}          result              - 处理前的结果对象
+ * @param {String}          result.status       - 状态
+ * @param {*}               result.msg          - 数据
+ * @param {*}               result.ext          - 扩展
+ * @param {Error|String}    result.err          - 错误
+ * @param {String}          result.desc         - 描述
+ * @param {String}          result.view         - 视图模板（渲染成功）
+ * @param {String}          result.errorView    - 视图模板（渲染出错）
+ * @param {String}          result.page         - 静态文件路径
+ * @param {http.Request}    req                 - http.Request
+ * @param {http.Reponse}    res                 - http.Response
+ * @param {Function}        next                - app.next
+ * @returns {*}
+ */
 module.exports = () => {
-  /**
-   * finallyResp
-   * @param {Object}          result              - 处理前的结果对象
-   * @param {String}          result.status       - 状态
-   * @param {*}               result.msg          - 数据
-   * @param {*}               result.ext          - 扩展
-   * @param {Error|String}    result.err          - 错误
-   * @param {String}          result.desc         - 描述
-   * @param {String}          result.view         - 视图模板（渲染成功）
-   * @param {String}          result.errorView    - 视图模板（渲染出错）
-   * @param {String}          result.page         - 静态文件路径
-   * @param {http.Request}    req                 - http.Request
-   * @param {http.Reponse}    res                 - http.Response
-   * @param {Function}        next                - app.next
-   * @returns {*}
-   */
   return (result, req, res, next) => {
     if (result instanceof Error) {
       result = {
@@ -40,12 +40,12 @@ module.exports = () => {
     }
 
     return res.json({
-      RetSucceed : true,
-      Succeed    : final.succeed,
-      Code       : final.code,
-      Desc       : result.desc || final.desc,
-      Message    : result.msg || final.desc,
-      ExtData    : result.ext || {}
+      retSucceed : true,
+      succeed    : final.succeed,
+      code       : final.code,
+      desc       : result.desc || final.desc,
+      message    : result.msg || final.desc,
+      extdata    : result.ext || {}
     });
   };
 };
