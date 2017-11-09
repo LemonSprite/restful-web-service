@@ -1,8 +1,5 @@
 'use strict'
 
-exports.httpRetry = httpRetry;
-
-
 /**
  * http 请求重试
  * 
@@ -10,21 +7,21 @@ exports.httpRetry = httpRetry;
  * @param {number} [times=3] 
  * @param {number} [delay=0] 
  */
-function httpRetry(fn, times = 3, delay = 0) {
-  return fn().catch(err => {
-    if (needRetry(err)) {
-      if (times > 0) {
-        return Promise.delay(delay).then(() =>
-          httpRetry(fn, times - 1, delay)
-        );
-      } else {
-        err.message += '，已重试3次';
+module.exports = (fn, times = 3, delay = 0) => {
+  return function request(...args) {
+    return fn(...args).catch(err => {
+      if (needRetry(err)) {
+        if (times-- > 0) {
+          return Promise.delay(delay).then(() => request(...args));
+        } else {
+          err.message += '，已重试3次';
+          return Promise.reject(err);
+        }
+      } else {    
         return Promise.reject(err);
       }
-    } else {    
-      return Promise.reject(err);
-    }
-  });
+    });
+  }
 }
 
 /**
