@@ -2,198 +2,193 @@
 
 const Redis = require('ioredis');
 
-const redis = new Redis(config.redis);
+class Cache {
+  constructor(redisConfig) {
+    this.redis = new Redis(redisConfig);
+  }
 
-module.exports = {
-  set,
-  get,
-  incr,
+  // -------------------- string --------------------
 
-  hset,
-  hget,
-  hdel,
-  hincr,
+  async set(key, value, expire) {
+    await this.redis.set(key, JSON.stringify(value));
+    await this.setExpire(key, expire);
+  }
 
-  sadd,
-  spop,
-  srem,
-  sismember,
-
-  zrank,
-  zrange,
-  zrevrange,
-  zcount,
-  zadd,
-  zcard,
-  zrem,
-  zremrangebyscore,
-
-  pipeline,
-  scan,
-  hscan,
-
-  del,
-  ttl,
-
-  flushdb,
-
-  genKey
-};
-
-async function set(key, value, expire) {
-  await redis.set(key, JSON.stringify(value));
-  await setExpire(key, expire);
-}
-
-async function get(key, fn, expire) {
-  const value = await redis.get(key);
-  if (value) {
-    return JSON.parse(value);
-  } else {
-    if (typeof fn === 'function') {
-      const content = await fn();
-      await set(key, content, expire);
-      return content;
+  async get(key, fn, expire) {
+    const value = await this.redis.get(key);
+    if (value) {
+      return JSON.parse(value);
     } else {
-      return null;
+      if (typeof fn === 'function') {
+        const content = await fn();
+        await this.set(key, content, expire);
+        return content;
+      } else {
+        return null;
+      }
     }
   }
-}
 
-function incr(key, value = 1) {
-  return redis.incrby(key, value);
-}
+  incr(key, value = 1) {
+    return this.redis.incrby(key, value);
+  }
 
-async function hset(key, field, value, expire) {
-  await redis.hset(key, field, JSON.stringify(value));
-  await setExpire(key, expire);
-}
+  // -------------------- hash --------------------
 
-async function hget(key, field, fn, expire) {
-  const value = await redis.hget(key, field);
-  if (value) {
-    return JSON.parse(value);
-  } else {
-    if (typeof fn === 'function') {
-      const content = await fn();
-      await hset(key, field, content, expire);
-      return content;
+  async hset(key, field, value, expire) {
+    await this.redis.hset(key, field, JSON.stringify(value));
+    await this.setExpire(key, expire);
+  }
+
+  async hget(key, field, fn, expire) {
+    const value = await this.redis.hget(key, field);
+    if (value) {
+      return JSON.parse(value);
     } else {
-      return null;
+      if (typeof fn === 'function') {
+        const content = await fn();
+        await this.hset(key, field, content, expire);
+        return content;
+      } else {
+        return null;
+      }
     }
   }
-}
 
-function hdel(key, field) {
-  return redis.hdel(key, field);
-}
+  hdel(key, field) {
+    return this.redis.hdel(key, field);
+  }
 
-function hincr(key, field, value = 1) {
-  return redis.hincrby(key, field, value);
-}
+  hincr(key, field, value = 1) {
+    return this.redis.hincrby(key, field, value);
+  }
 
-async function sadd(key, member, expire) {
-  await redis.sadd(key, member);
-  await setExpire(key, expire);
-}
+  // -------------------- set --------------------
 
-function sismember(key, member) {
-  return redis.sismember(key, member);
-}
+  async sadd(key, member, expire) {
+    await this.redis.sadd(key, member);
+    await this.setExpire(key, expire);
+  }
 
-function spop(key) {
-  return redis.spop(key);
-}
+  sismember(key, member) {
+    return this.redis.sismember(key, member);
+  }
 
-function srem(key, member) {
-  return redis.srem(key, member);
-}
+  spop(key) {
+    return this.redis.spop(key);
+  }
 
-async function zrank(key, member, fn) {
-  await getCacheIfEmpty(key, fn);
-  return redis.zrank(key, member);
-}
+  srem(key, member) {
+    return this.redis.srem(key, member);
+  }
 
-async function zrange(key, start, end, fn, opts) {
-  await getCacheIfEmpty(key, fn);
-  if (opts) {
-    return redis.zrange(key, start, end, opts);
-  } else {
-    return redis.zrange(key, start, end);
+  // -------------------- zset --------------------
+
+  zadd(key, value) {
+    return this.redis.zadd(key, value);
+  }
+
+  zcard(key) {
+    return this.redis.zcard(key);
+  }
+
+  zscore(key) {
+    return this.redis.zscore(key);
+  }
+
+  zrem(key, member) {
+    return this.redis.zrem(key, member);
+  }
+
+  async zrank(key, member, fn) {
+    await this.getCacheIfEmpty(key, fn);
+    return this.redis.zrank(key, member);
+  }
+
+  async zrange(key, start, end, fn, opts) {
+    await this.getCacheIfEmpty(key, fn);
+    if (opts) {
+      return this.redis.zrange(key, start, end, opts);
+    } else {
+      return this.redis.zrange(key, start, end);
+    }
+  }
+
+  async zrevrange(key, start, end, fn, opts) {
+    await this.getCacheIfEmpty(key, fn);
+    if (opts) {
+      return this.redis.zrevrange(key, start, end, opts);
+    } else {
+      return this.redis.zrevrange(key, start, end);
+    }
+  }
+
+  zcount(key, min, max) {
+    return this.redis.zcount(key, min, max);
+  }
+
+  zremrangebyscore(key, min, max) {
+    return this.redis.zremrangebyscore(key, min, max);
+  }
+
+  // -------------------- other --------------------
+
+  pipeline() {
+    return this.redis.pipeline();
+  }
+
+  scan({match, count}, dataFn, endFn = () => null) {
+    const stream = this.redis.scanStream({match, count});
+    stream.on('data', dataFn);
+    stream.on('end', endFn);
+  }
+
+  hscan(key, {match, count}, dataFn, endFn = () => null) {
+    const stream = this.redis.hscanStream(key, {match, count});
+    stream.on('data', dataFn);
+    stream.on('end', endFn);
+  }
+
+  ttl(key) {
+    return this.redis.ttl(key);
+  }
+
+  del(key) {
+    return this.redis.del(key);
+  }
+
+  flushdb() {
+    return this.redis.flushdb();
+  }
+
+  async getCacheIfEmpty(key, fn) {
+    if (typeof fn === 'function' && !(await this.redis.zcard(key))) {
+      const ret = await fn();
+      const values = ret.reduce((arr, val) => arr.concat(val), []);
+      return values.length &&  this.redis.zadd(key, values);
+    }
+  }
+
+  setExpire(key, expire) {
+    if (Number.isInteger(expire)) {
+      return this.redis.expire(key, expire);
+    }
+  }
+
+  genKey() {
+    return Array.from(arguments).join(':');
+  }
+
+  parseZset(values, schema) {
+    const ret = [];
+    for (let i = 0, len = values.length; i < len; i++) {
+      const item = {};
+      item[schema[0]] = values[i];
+      item[schema[1]] = +values[i + 1];
+      ret.push(item);
+    }
+    return ret;
   }
 }
 
-async function zrevrange(key, start, end, fn, opts) {
-  await getCacheIfEmpty(key, fn);
-  if (opts) {
-    return redis.zrevrange(key, start, end, opts);
-  } else {
-    return redis.zrevrange(key, start, end);
-  }
-}
-
-function zcount(key, min, max) {
-  return redis.zcount(key, min, max);
-}
-
-function zremrangebyscore(key, min, max) {
-  return redis.zremrangebyscore(key, min, max);
-}
-
-function zadd(key, value) {
-  return redis.zadd(key, value);
-}
-
-function zcard(key) {
-  return redis.zcard(key);
-}
-
-function zrem(key, member) {
-  return redis.zrem(key, member);
-}
-
-function pipeline() {
-  return redis.pipeline();
-}
-
-function scan({match, count}, dataFn, endFn = () => null) {
-  const stream = redis.scanStream({match, count});
-  stream.on('data', dataFn);
-  stream.on('end', endFn);
-}
-
-function hscan(key, {match, count}, dataFn, endFn = () => null) {
-  const stream = redis.hscanStream(key, {match, count});
-  stream.on('data', dataFn);
-  stream.on('end', endFn);
-}
-
-function ttl(key) {
-  return redis.ttl(key);
-}
-
-function del(key) {
-  return redis.del(key);
-}
-
-function flushdb() {
-  return redis.flushdb();
-}
-
-function genKey() {
-  return Array.from(arguments).join(':');
-}
-
-async function getCacheIfEmpty(key, fn) {
-  if (typeof fn === 'function' && !(await redis.zcard(key))) {
-    const ret = await fn();
-    const values = ret.reduce((arr, val) => arr.concat(val), []);
-    return values.length &&  redis.zadd(key, values);
-  }
-}
-
-function setExpire(key, expire) {
-  if (Number.isInteger(expire)) {
-    return redis.expire(key, expire);
-  }
-}
+module.exports = new Cache(config.redis);
