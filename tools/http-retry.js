@@ -14,7 +14,7 @@ module.exports = (fn, times = 3, delay = 0) => {
         if (times-- > 0) {
           return Promise.delay(delay).then(() => request(...args));
         } else {
-          err.message += '，已重试3次';
+          err.message += ' 已重试3次';
           return Promise.reject(err);
         }
       } else {    
