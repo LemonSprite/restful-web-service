@@ -14,21 +14,21 @@ module.exports = {
     dir            : '../logs',
     nolog          : /\.(js|css|png|jpg|jpeg|ico|svg|gif)/,
     format         : ':remote-addr :method :url :status :response-time ms :user-agent :content-length',
-    replaceConsole : true,
     level          : 'AUTO',
+    replaceConsole : true,
     console        : true
   },
 
   redis: {
     host: '127.0.0.1',
     port: 6379,
-    // db: 8,
-    password: ''
+    db: 2
   },
 
   redisSession: {
     host: '127.0.0.1',
-    port: 6379
+    port: 6379,
+    db  : 1
   },
   
   mysql: {
@@ -37,9 +37,12 @@ module.exports = {
     password: '123',
     port: 3306,
     database: 'test',
-    // connectTimeout: 5000,
-    // waitForConnections: true,
-    // connectionLimit: 50,
+    // 连接 mysql 超时时间，毫秒，默认10s
+    connectTimeout: 5000,
+    // 连接池满时是否等待，默认为true
+    waitForConnections: true,
+    // 最大连接池数，默认10
+    connectionLimit: 50,
     logging: true,
     forceSync: false
   }
