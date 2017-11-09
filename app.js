@@ -1,9 +1,8 @@
 'use strict';
 
-/* eslint-disable */
-// if (process.env === 'production') {
-//   require('newrelic');
-// }
+if (process.env === 'production') {
+  require('newrelic');
+}
 
 require('./global-variable');
 

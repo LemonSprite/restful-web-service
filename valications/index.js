@@ -1,7 +1,5 @@
 'use strict';
 
-/* eslint-disable */
-
 module.exports = fs
   .readdirSync(__dirname)
   .filter(file => file !== 'index.js')

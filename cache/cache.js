@@ -45,13 +45,13 @@ async function set(key, value, expire) {
   await setExpire(key, expire);
 }
 
-async function get(key, func, expire) {
+async function get(key, fn, expire) {
   const value = await redis.get(key);
   if (value) {
     return JSON.parse(value);
   } else {
-    if (typeof func === 'function') {
-      const content = await func();
+    if (typeof fn === 'function') {
+      const content = await fn();
       await set(key, content, expire);
       return content;
     } else {
@@ -69,13 +69,13 @@ async function hset(key, field, value, expire) {
   await setExpire(key, expire);
 }
 
-async function hget(key, field, func, expire) {
+async function hget(key, field, fn, expire) {
   const value = await redis.hget(key, field);
   if (value) {
     return JSON.parse(value);
   } else {
-    if (typeof func === 'function') {
-      const content = await func();
+    if (typeof fn === 'function') {
+      const content = await fn();
       await hset(key, field, content, expire);
       return content;
     } else {
@@ -109,13 +109,13 @@ function srem(key, member) {
   return redis.srem(key, member);
 }
 
-async function zrank(key, member, func) {
-  await getCacheIfEmpty(key, func);
+async function zrank(key, member, fn) {
+  await getCacheIfEmpty(key, fn);
   return redis.zrank(key, member);
 }
 
-async function zrange(key, start, end, func, opts) {
-  await getCacheIfEmpty(key, func);
+async function zrange(key, start, end, fn, opts) {
+  await getCacheIfEmpty(key, fn);
   if (opts) {
     return redis.zrange(key, start, end, opts);
   } else {
@@ -123,8 +123,8 @@ async function zrange(key, start, end, func, opts) {
   }
 }
 
-async function zrevrange(key, start, end, func, opts) {
-  await getCacheIfEmpty(key, func);
+async function zrevrange(key, start, end, fn, opts) {
+  await getCacheIfEmpty(key, fn);
   if (opts) {
     return redis.zrevrange(key, start, end, opts);
   } else {
@@ -156,16 +156,16 @@ function pipeline() {
   return redis.pipeline();
 }
 
-function scan({match, count}, dataFunc, endFunc = () => null) {
+function scan({match, count}, dataFn, endFn = () => null) {
   const stream = redis.scanStream({match, count});
-  stream.on('data', dataFunc);
-  stream.on('end', endFunc);
+  stream.on('data', dataFn);
+  stream.on('end', endFn);
 }
 
-function hscan(key, {match, count}, dataFunc, endFunc = () => null) {
+function hscan(key, {match, count}, dataFn, endFn = () => null) {
   const stream = redis.hscanStream(key, {match, count});
-  stream.on('data', dataFunc);
-  stream.on('end', endFunc);
+  stream.on('data', dataFn);
+  stream.on('end', endFn);
 }
 
 function ttl(key) {
@@ -184,9 +184,9 @@ function genKey() {
   return Array.from(arguments).join(':');
 }
 
-async function getCacheIfEmpty(key, func) {
-  if (typeof func === 'function' && !(await redis.zcard(key))) {
-    const ret = await func();
+async function getCacheIfEmpty(key, fn) {
+  if (typeof fn === 'function' && !(await redis.zcard(key))) {
+    const ret = await fn();
     const values = ret.reduce((arr, val) => arr.concat(val), []);
     return values.length &&  redis.zadd(key, values);
   }
