@@ -11,7 +11,7 @@ class Cache {
 
   async set(key, value, expire) {
     await this.redis.set(key, JSON.stringify(value));
-    await this.setExpire(key, expire);
+    await this.redis.expire(key, expire)
   }
 
   async get(key, fn, expire) {
@@ -37,7 +37,7 @@ class Cache {
 
   async hset(key, field, value, expire) {
     await this.redis.hset(key, field, JSON.stringify(value));
-    await this.setExpire(key, expire);
+    await this.redis.expire(key, expire)
   }
 
   async hget(key, field, fn, expire) {
@@ -67,7 +67,7 @@ class Cache {
 
   async sadd(key, member, expire) {
     await this.redis.sadd(key, member);
-    await this.setExpire(key, expire);
+    await this.redis.expire(key, expire)
   }
 
   sismember(key, member) {
@@ -169,14 +169,12 @@ class Cache {
     }
   }
 
-  setExpire(key, expire) {
-    if (Number.isInteger(expire)) {
-      return this.redis.expire(key, expire);
-    }
-  }
-
   genKey() {
     return Array.from(arguments).join(':');
+  }
+
+  isCacheKey(key) {
+    return typeof key === 'object' && key.key;
   }
 
   parseZset(values, schema) {
@@ -191,4 +189,21 @@ class Cache {
   }
 }
 
-module.exports = new Cache(config.redis);
+const redisInstance = new Cache(config.redis);
+
+// 兼容 {key: *, expire: *}
+const missMethods = ['constructor'];
+const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(redisInstance));
+methods
+  .filter(method => !missMethods.includes(method))
+  .forEach(method => {
+    Redis.Command.setArgumentTransformer(method, args => {
+      if (redisInstance.isCacheKey(args[0])) {
+        args[0] = args[0].key;
+        return args;
+      }
+      return args;
+    });
+  });
+
+module.exports = redisInstance;
