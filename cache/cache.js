@@ -42,9 +42,9 @@ class Cache extends Redis {
     }
   }
 
-  async get(key, fn, expire) {
+  async get(key, fn, expire, refresh) {
     const value = await super.get(key);
-    if (value) {
+    if (value && !refresh) {
       return JSON.parse(value);
     } else {
       if (typeof fn === 'function') {
@@ -125,13 +125,13 @@ class Cache extends Redis {
 
   // -------------------- scan/hscan --------------------
 
-  scan({match, count}, dataFn, endFn = () => null) {
+  scanStream({match, count}, dataFn, endFn = () => null) {
     const stream = super.scanStream({match, count});
     stream.on('data', dataFn);
     stream.on('end', endFn);
   }
 
-  hscan(key, {match, count}, dataFn, endFn = () => null) {
+  hscanStream(key, {match, count}, dataFn, endFn = () => null) {
     const stream = super.hscanStream(key, {match, count});
     stream.on('data', dataFn);
     stream.on('end', endFn);

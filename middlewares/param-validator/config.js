@@ -25,7 +25,7 @@ const customValidators = {
 
   isStringArray(value) {
     try {
-      value = (typeof value === 'string') ? JSON.parse(value) : value;
+      value = parseString(value);
       return Array.isArray(value) && value.every(item => typeof item === 'string');
     } catch (e) {
       return false;
