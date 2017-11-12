@@ -2,19 +2,19 @@
 
 /**
  * 对 controller 进行异常捕捉
- * @param {any} controllers
- * @returns {*}
+ * @param {any} params
+ * @return params
  */
-module.exports = controllers => {
-  if (typeof controllers === 'function') {
-    return catchError(controllers);
+module.exports = function (controller) {
+  if (typeof controller === 'function') {
+    return catchError(controller);
   }
-  if (typeof controllers === 'object') {
-    Object.keys(controllers)
-      .filter(ctrl => typeof controllers[ctrl] === 'function')
-      .forEach(ctrl => (controllers[ctrl] = catchError(controllers[ctrl])));
+  if (typeof controller === 'object') {
+    Object.keys(controller)
+      .filter(api => typeof controller[api] === 'function')
+      .forEach(api => (controller[api] = catchError(controller[api])));
   }
-  return controllers;
+  return controller;
 };
 
 /**
