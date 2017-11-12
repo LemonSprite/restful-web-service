@@ -16,6 +16,7 @@ module.exports = (fn, times = 3, delay = 0) => {
           return Promise.delay(delay).then(() => request(...args));
         } else {
           err.message += ' 已重试3次';
+          logger.error('HTTP Retry: ', err.toString());
           return Promise.reject(err);
         }
       } else {
