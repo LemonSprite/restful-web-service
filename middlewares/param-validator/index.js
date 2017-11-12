@@ -19,8 +19,7 @@ const sanitizeMap = {
 module.exports = router => {
   router.use(expressValidator(validateConf));
   Object.values(validateMods).forEach(mod => {
-    Object.values(mod).forEach(api => {
-      const {method, route, schema} = api;
+    Object.values(mod).forEach(({method, route, schema}) => {
       router[method](route, addDefaultValue(schema), validateReq(schema));
     });
   });
@@ -72,7 +71,6 @@ function reqFilter(schema, req, next) {
       if (!(opts && opts.in && opts.in === where)) {
         return delete req[where][field];
       }
-
       // 遍历 sanitizeMap, 查找 schema 验证的字段有没有对应的验证类型，如果有，则调用数据转换方法
       for (const sanitizeKey in sanitizeMap) {
         if (opts[sanitizeKey]) {

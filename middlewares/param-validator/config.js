@@ -1,55 +1,63 @@
 'use strict';
 
+function parseString(value) {
+  return typeof value === 'string' ? JSON.parse(value) : value;
+}
+
 // 自定义验证方法
 const customValidators = {
   isArray(value) {
     try {
-      return Array.isArray((typeof value === 'string') ? JSON.parse(value) : value);
+      return Array.isArray(parseString(value));
     } catch (e) {
       return false;
     }
   },
+  
   isIntArray(value) {
     try {
-      value = (typeof value === 'string') ? JSON.parse(value) : value;
-      return Array.isArray(value) && value.every(item => Number.isInteger(_.toInteger(item)));
+      value = parseString(value);
+      return Array.isArray(value) && value.every(item => Number.isInteger(Number(item)));
     } catch (e) {
       return false;
     }
   },
+
   isStringArray(value) {
     try {
       value = (typeof value === 'string') ? JSON.parse(value) : value;
-      return Array.isArray(value) && value.every(_.isString);
+      return Array.isArray(value) && value.every(item => typeof item === 'string');
     } catch (e) {
       return false;
     }
   },
+
   isObject(value) {
     try {
-      return _.isObject((typeof value === 'string') ? JSON.parse(value) : value);
+      return typeof parseString(value) === 'object';
     } catch (e) {
       return false;
     }
   },
-  isString: _.isString
+
+  isString(value) {
+    return typeof value === 'string';
+  }
 };
 
 // 自定义sanitizer
 const customSanitizers = {
   toArray(value) {
-    return (typeof value === 'string') ? JSON.parse(value) : value;
+    return parseString(value);
   },
   toIntArray(value) {
-    value = (typeof value === 'string') ? JSON.parse(value) : value;
-    return value.map(_.toInteger);
+    return parseString(value).map(Number);
   },
   toStringArray(value) {
-    value = (typeof value === 'string') ? JSON.parse(value) : value;
-    return value.map(String);
+    return parseString(value).map(String);
   },
   toObject(value) {
-    return (typeof value === 'string') ? JSON.parse(value) : value;
+    return parseString(value);
   }
 };
 
