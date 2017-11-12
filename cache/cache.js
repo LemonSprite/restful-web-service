@@ -2,27 +2,53 @@
 
 const Redis = require('ioredis');
 
-class Cache {
-  constructor(redisConfig) {
-    this.redis = new Redis(redisConfig);
+class Cache extends Redis {
+  constructor(redisConfig = {}) {
+    super(redisConfig);
+    this.init();
+  }
+
+  // -------------------- init --------------------
+
+  init() {
+    // 兼容 {key: *, expire: *}
+    Object.getOwnPropertyNames(Redis.prototype)
+      .forEach(method => {
+        Redis.Command.setArgumentTransformer(method, args => {
+          if (this.isCacheKey(args[0])) {
+            args[0] = args[0].key;
+            return args;
+          }
+          return args;
+        });
+      });
+
+    // 初始化 lua 脚本
+    require('../global-variable');
+    fs.readDirSync(path.join(__dirname, 'lua-script'))
+      .forEach(file => {
+        console.log(file);
+      })
   }
 
   // -------------------- string --------------------
 
   async set(key, value, expire) {
-    await this.redis.set(key, JSON.stringify(value));
-    await this.redis.expire(key, expire)
+    await super.set(key, JSON.stringify(value));
+    if (expire) {
+      await super.expire(key, expire);
+    }
   }
 
   async get(key, fn, expire) {
-    const value = await this.redis.get(key);
+    const value = await super.get(key);
     if (value) {
       return JSON.parse(value);
     } else {
       if (typeof fn === 'function') {
-        const content = await fn();
-        await this.set(key, content, expire);
-        return content;
+        const ret = await fn();
+        await this.set(key, ret, expire);
+        return ret;
       } else {
         return null;
       }
@@ -30,18 +56,20 @@ class Cache {
   }
 
   incr(key, value = 1) {
-    return this.redis.incrby(key, value);
+    return super.incrby(key, value);
   }
 
   // -------------------- hash --------------------
 
   async hset(key, field, value, expire) {
-    await this.redis.hset(key, field, JSON.stringify(value));
-    await this.redis.expire(key, expire)
+    await super.hset(key, field, JSON.stringify(value));
+    if (expire) {
+      await super.expire(key, expire)
+    }
   }
 
   async hget(key, field, fn, expire) {
-    const value = await this.redis.hget(key, field);
+    const value = await super.hget(key, field);
     if (value) {
       return JSON.parse(value);
     } else {
@@ -55,117 +83,65 @@ class Cache {
     }
   }
 
-  hdel(key, field) {
-    return this.redis.hdel(key, field);
-  }
-
   hincr(key, field, value = 1) {
-    return this.redis.hincrby(key, field, value);
+    return super.hincrby(key, field, value);
   }
 
   // -------------------- set --------------------
 
   async sadd(key, member, expire) {
-    await this.redis.sadd(key, member);
-    await this.redis.expire(key, expire)
-  }
-
-  sismember(key, member) {
-    return this.redis.sismember(key, member);
-  }
-
-  spop(key) {
-    return this.redis.spop(key);
-  }
-
-  srem(key, member) {
-    return this.redis.srem(key, member);
+    await super.sadd(key, member);
+    if (expire) {
+      await super.expire(key, expire)
+    }
   }
 
   // -------------------- zset --------------------
 
-  zadd(key, value) {
-    return this.redis.zadd(key, value);
-  }
-
-  zcard(key) {
-    return this.redis.zcard(key);
-  }
-
-  zscore(key) {
-    return this.redis.zscore(key);
-  }
-
-  zrem(key, member) {
-    return this.redis.zrem(key, member);
-  }
-
   async zrank(key, member, fn) {
     await this.getCacheIfEmpty(key, fn);
-    return this.redis.zrank(key, member);
+    return super.zrank(key, member);
   }
 
   async zrange(key, start, end, fn, opts) {
     await this.getCacheIfEmpty(key, fn);
     if (opts) {
-      return this.redis.zrange(key, start, end, opts);
+      return super.zrange(key, start, end, opts);
     } else {
-      return this.redis.zrange(key, start, end);
+      return super.zrange(key, start, end);
     }
   }
 
   async zrevrange(key, start, end, fn, opts) {
     await this.getCacheIfEmpty(key, fn);
     if (opts) {
-      return this.redis.zrevrange(key, start, end, opts);
+      return super.zrevrange(key, start, end, opts);
     } else {
-      return this.redis.zrevrange(key, start, end);
+      return super.zrevrange(key, start, end);
     }
   }
 
-  zcount(key, min, max) {
-    return this.redis.zcount(key, min, max);
-  }
-
-  zremrangebyscore(key, min, max) {
-    return this.redis.zremrangebyscore(key, min, max);
-  }
-
-  // -------------------- other --------------------
-
-  pipeline() {
-    return this.redis.pipeline();
-  }
+  // -------------------- scan/hscan --------------------
 
   scan({match, count}, dataFn, endFn = () => null) {
-    const stream = this.redis.scanStream({match, count});
+    const stream = super.scanStream({match, count});
     stream.on('data', dataFn);
     stream.on('end', endFn);
   }
 
   hscan(key, {match, count}, dataFn, endFn = () => null) {
-    const stream = this.redis.hscanStream(key, {match, count});
+    const stream = super.hscanStream(key, {match, count});
     stream.on('data', dataFn);
     stream.on('end', endFn);
   }
 
-  ttl(key) {
-    return this.redis.ttl(key);
-  }
-
-  del(key) {
-    return this.redis.del(key);
-  }
-
-  flushdb() {
-    return this.redis.flushdb();
-  }
+  // -------------------- other --------------------
 
   async getCacheIfEmpty(key, fn) {
-    if (typeof fn === 'function' && !(await this.redis.zcard(key))) {
+    if (typeof fn === 'function' && !(await super.zcard(key))) {
       const ret = await fn();
-      const values = ret.reduce((arr, val) => arr.concat(val), []);
-      return values.length &&  this.redis.zadd(key, values);
+      const value = ret.reduce((arr, val) => arr.concat(val), []);
+      return value.length &&  super.zadd(key, value);
     }
   }
 
@@ -188,22 +164,5 @@ class Cache {
     return ret;
   }
 }
-
-const redisInstance = new Cache(config.redis);
-
-// 兼容 {key: *, expire: *}
-const missMethods = ['constructor'];
-const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(redisInstance));
-methods
-  .filter(method => !missMethods.includes(method))
-  .forEach(method => {
-    Redis.Command.setArgumentTransformer(method, args => {
-      if (redisInstance.isCacheKey(args[0])) {
-        args[0] = args[0].key;
-        return args;
-      }
-      return args;
-    });
-  });
-
-module.exports = redisInstance;
+ 
+module.exports = new Cache();
