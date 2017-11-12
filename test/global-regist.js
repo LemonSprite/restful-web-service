@@ -20,5 +20,5 @@ global.requestSuccess = (t, res) => {
 global.requestFailed = (t, res) => {
   t.true(res.RetSucceed);
   t.false(res.Succeed);
-  t.is(res.Code, 500);
+  t.not(res.Code, 200);
 };

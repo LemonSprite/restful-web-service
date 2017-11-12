@@ -1,7 +1,5 @@
 'use strict';
 
-/* eslint-disable */
-
 const express = require('express');
 
 module.exports = versionDir => {
