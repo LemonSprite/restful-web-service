@@ -24,10 +24,11 @@ class Cache extends Redis {
       });
 
     // 初始化 lua 脚本
-    fs.readdirSync(path.join(__dirname, 'lua-script'))
+    const luaPath = path.join(__dirname, 'lua-script');
+    fs.readdirSync(luaPath)
       .forEach(file => {
-        const lua = fs.readFileSync(path.join(__dirname, 'lua-script', file), {encoding: 'utf8'});
-        const numberOfKeys = _.uniq(lua.match(/KEYS\[\d]/g)).length;
+        const lua = fs.readFileSync(path.join(luaPath, file), {encoding: 'utf8'});
+        const numberOfKeys = _.uniq(lua.match(/KEYS\[\d+]/g)).length;
         const fileName = file.split('.')[0];
         super.defineCommand(fileName, {numberOfKeys, lua});
       })
