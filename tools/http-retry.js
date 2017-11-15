@@ -4,11 +4,27 @@
  * http 请求重试
  *
  * @param {any} fn
+ * @returns {*}
+ */
+module.exports = fn => {
+  if (typeof fn === 'function') {
+    return retry(fn);
+  }
+  if (typeof fn === 'object') {
+    Object.keys(fn).forEach(i => (fn[i] = retry(fn[i])));
+  }
+  return fn;
+}
+
+/**
+ * http 请求重试
+ *
+ * @param {any} fn
  * @param {number} [times=3]
  * @param {number} [delay=0]
  * @returns {*}
  */
-module.exports = (fn, times = 3, delay = 0) => {
+function retry(fn, times = 3, delay = 0) {
   return function request(...args) {
     return fn(...args).catch(err => {
       if (needRetry(err)) {
