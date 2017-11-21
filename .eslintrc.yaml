@@ -32,6 +32,7 @@
     logger: true
     db: true
     config: true
+    utils: true
     handleError: true
 
   # "off"   or 0 - turn the rule off

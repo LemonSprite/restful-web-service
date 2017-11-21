@@ -12,16 +12,12 @@ class Cache extends Redis {
 
   init() {
     // 兼容 {key: *, expire: *}
-    Object.getOwnPropertyNames(Redis.prototype)
-      .forEach(method => {
-        Redis.Command.setArgumentTransformer(method, args => {
-          if (this.isCacheKey(args[0])) {
-            args[0] = args[0].key;
-            return args;
-          }
-          return args;
-        });
+    utils.getClassMethod(Redis).forEach(method => {
+      Redis.Command.setArgumentTransformer(method, args => {
+        if (this.isCacheKey(args[0])) args[0] = args[0].key;
+        return args;
       });
+    });
 
     // 初始化 lua 脚本
     const luaPath = path.join(__dirname, 'lua-script');
@@ -29,8 +25,16 @@ class Cache extends Redis {
       .forEach(file => {
         const lua = fs.readFileSync(path.join(luaPath, file), {encoding: 'utf8'});
         const numberOfKeys = _.uniq(lua.match(/KEYS\[\d+]/g)).length;
-        const fileName = file.split('.')[0];
-        super.defineCommand(fileName, {numberOfKeys, lua});
+        const methodName = file.split('.')[0];
+        this.defineCommand(methodName, {numberOfKeys, lua});
+
+        const luaMethod = this[methodName];
+        this[methodName] = (...args) => {
+          for (let i = 0; i < numberOfKeys; i++) {
+            if (this.isCacheKey(args[i])) args[i] = args[i].key;
+          }
+          return luaMethod.apply(this, args);
+        };
       })
   }
 
