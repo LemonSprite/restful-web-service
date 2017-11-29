@@ -2,26 +2,30 @@
 
 const Sequelize = require('sequelize');
 
-// eslint-disable-next-line
-const db = {};
-
-const sequelize = new Sequelize(config.mysql.database, null, null, {
-  host          : config.mysql.host,
+const options = {
   port          : config.mysql.port,
   dialect       : 'mysql',
   dialectOptions: {
     charset: 'utf8mb4'
   },
-  // replication: {
-  //   read: [{host: '10.32.8.122', username: 'test', password: '123'}],
-  //   write: {host: '10.32.10.66', username: 'test', password: '123'}
-  // },
-  logging       : function (output) {
+  logging(output) {
     if (config.mysql.logging) {
       logger.info(output);
     }
   }
-});
+}
+
+let sequelize;
+if (process.env.NODE_ENV === 'production') {
+  options.replication = {read: config.mysql.read, write: config.mysql.write};
+  sequelize = new Sequelize(config.mysql.database, null, null, options);
+} else {
+  options.host = config.mysql.host;
+  sequelize = new Sequelize(config.mysql.database, config.mysql.username, config.mysql.password, options);
+}
+
+// eslint-disable-next-line
+const db = {};
 
 // eslint-disable-next-line
 fs.readdirSync(__dirname)

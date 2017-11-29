@@ -11,15 +11,30 @@ class Cache extends Redis {
   // -------------------- init --------------------
 
   init() {
-    // 兼容 {key: *, expire: *}
+    this.listenConnect();
+    this.compatibleCacheKey();
+    this.initLuaScript();
+  }
+
+  listenConnect() {
+    this.on('connect', () => {
+      logger.info('redis connected');
+    });
+    this.on('error', err => {
+      logger.error('redis connect error: ', err);
+    })
+  }
+
+  compatibleCacheKey() {
     utils.getClassMethod(Redis).forEach(method => {
       Redis.Command.setArgumentTransformer(method, args => {
         if (this.isCacheKey(args[0])) args[0] = args[0].key;
         return args;
       });
     });
+  }
 
-    // 初始化 lua 脚本
+  initLuaScript() {
     const luaPath = path.join(__dirname, 'lua-script');
     fs.readdirSync(luaPath)
       .forEach(file => {
