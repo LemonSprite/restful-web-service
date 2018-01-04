@@ -29,11 +29,11 @@ module.exports = () => {
       return res.status(500).json({error: 'Interval Server Error'});
     }
 
-    if (!ret.code || !http.STATUS_CODES[ret.code]) {
+    if (!isCodeOk(ret.code)) {
       return res.status(500).json({error: 'invalid status code'});
     }
 
-    if ((ret.data && ret.error) || (!ret.data && !ret.error)) {
+    if (!onlyOne(ret.data, ret,error)) {
       return res.status(500).json({error: 'illegal data or error'});
     }
 
@@ -53,4 +53,12 @@ function logError(req, err) {
   } else {
     logger.warn('\nWarn Begin\n', err, '\n', req.method, req.url, '\nWarn End\n');
   }
+}
+
+function isCodeOk(code) {
+  return code && http.STATUS_CODES[code];
+}
+
+function onlyOne(a, b) {
+  return (a || b) && (!a || !b);
 }
