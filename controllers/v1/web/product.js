@@ -7,10 +7,10 @@ module.exports = {
 
 async function get(req, res, next) {
   const products = await db.Products.findAll();
-  return next({code: 200, msg: products})
+  return next({code: 200, data: products})
 }
 
 async function add(req, res, next) {
   const product = await db.Products.create({price: Date.now() % 1000});  
-  return next({code: 200, msg: product});
+  return next({code: 200, data: product});
 }
