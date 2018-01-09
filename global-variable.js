@@ -8,7 +8,7 @@ global.config  = require('config');
 global.Promise = require('bluebird');
 
 global.db          = require('./models');
+global.cache       = require('./cache');
 global.utils       = require('./utils/utils');
-global.cache       = require('./cache/cache');
 global.logger      = require('./tools/logger');
 global.handleError = require('./middlewares/error-handle');
