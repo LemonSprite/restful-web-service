@@ -15,10 +15,11 @@ const secureHttpHeader = require('../middlewares/secure-http-header');
 
 const app = express();
 
-app.use(secureHttpHeader());
-
 // 对响应进行 gzip 压缩，降低响应主体的大小，提高 web 应用程序的速度 (使用 nginx 进行 gzip 压缩则无需此中间件)
 app.use(compression());
+
+// 添加一些安全的 HTTP 头
+app.use(secureHttpHeader());
 
 // 在 Response Headers 里添加 X-Response-Time 首部来显示响应的时间
 app.use(responseTime());

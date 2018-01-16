@@ -1,3 +1,5 @@
+import { exec } from 'child_process';
+
 'use strict';
 
 const Redis = require('ioredis');
@@ -12,7 +14,7 @@ class Cache extends Redis {
 
   init() {
     this.listenConnect();
-    this.compatibleCacheKey();
+    // this.compatibleCacheKey();
     this.initLuaScript();
   }
 
@@ -25,14 +27,14 @@ class Cache extends Redis {
     })
   }
 
-  compatibleCacheKey() {
-    utils.getClassMethod(Redis).forEach(method => {
-      Redis.Command.setArgumentTransformer(method, args => {
-        if (this.isCacheKey(args[0])) args[0] = args[0].key;
-        return args;
-      });
-    });
-  }
+  // compatibleCacheKey() {
+  //   utils.getClassMethod(Redis).forEach(method => {
+  //     Redis.Command.setArgumentTransformer(method, args => {
+  //       if (this.isCacheKey(args[0])) args[0] = args[0].key;
+  //       return args;
+  //     });
+  //   });
+  // }
 
   initLuaScript() {
     const luaPath = path.join(__dirname, 'lua-script');
@@ -55,21 +57,20 @@ class Cache extends Redis {
 
   // -------------------- string --------------------
 
-  async set(key, value, expire) {
-    await super.set(key, JSON.stringify(value));
-    if (expire) {
-      await super.expire(key, expire);
-    }
+  async set({key, expire}, value) {
+    const ret = await super.set(key, JSON.stringify(value));
+    await this.setExpire(key, expire);
+    return ret;
   }
 
-  async get(key, fn, expire, refresh) {
+  async get({key, expire}, fn, refresh) {
     const value = await super.get(key);
     if (value && !refresh) {
       return JSON.parse(value);
     } else {
       if (typeof fn === 'function') {
         const ret = await fn();
-        await this.set(key, ret, expire);
+        await this.set({key, expire}, ret);
         return ret;
       } else {
         return null;
@@ -77,45 +78,55 @@ class Cache extends Redis {
     }
   }
 
-  incr(key, value = 1) {
-    return super.incrby(key, value);
+  del({key}) {
+    return super.del(key);
+  }
+
+  async incr({key, expire}, value = 1) {
+    const ret = await super.incrby(key, value);
+    await this.setExpire(key, expire);
+    return ret;
   }
 
   // -------------------- hash --------------------
 
-  async hset(key, field, value, expire) {
-    await super.hset(key, field, JSON.stringify(value));
-    if (expire) {
-      await super.expire(key, expire)
-    }
+  async hset({key, field, expire}, value) {
+    const ret = await super.hset(key, field, JSON.stringify(value));
+    await this.setExpire(key, expire);
+    return ret;
   }
 
-  async hget(key, field, fn, expire) {
+  async hget({key, field, expire}, fn, refresh) {
     const value = await super.hget(key, field);
-    if (value) {
+    if (value && !refresh) {
       return JSON.parse(value);
     } else {
       if (typeof fn === 'function') {
-        const content = await fn();
-        await this.hset(key, field, content, expire);
-        return content;
+        const ret = await fn();
+        await this.hset({key, field, expire}, ret);
+        return ret;
       } else {
         return null;
       }
     }
   }
 
-  hincr(key, field, value = 1) {
-    return super.hincrby(key, field, value);
+  hdel({key, field}) {
+    return super.hdel(key, field);
+  }
+
+  async hincr({key, field, expire}, value = 1) {
+    const ret = await super.hincrby(key, field, value);
+    await this.setExpire(key, expire);
+    return ret;
   }
 
   // -------------------- set --------------------
 
-  async sadd(key, member, expire) {
-    await super.sadd(key, member);
-    if (expire) {
-      await super.expire(key, expire)
-    }
+  async sadd({key, expire}, member) {
+    const ret = await super.sadd(key, member);
+    await this.setExpire(key, expire);
+    return ret;
   }
 
   // -------------------- zset --------------------
@@ -158,6 +169,16 @@ class Cache extends Redis {
   }
 
   // -------------------- other --------------------
+
+  setExpire(key, expire) {
+    if (!expire) return;
+    
+    if (typeof expire === 'number' && expire >= 0) {
+      return super.expire(key, expire);
+    } else {
+      throw new TypeError('expire must be a positive number');
+    }
+  }
 
   async getCacheIfEmpty(key, fn) {
     if (typeof fn === 'function' && !(await super.zcard(key))) {

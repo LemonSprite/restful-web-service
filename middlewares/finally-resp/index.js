@@ -24,7 +24,7 @@ const http = require('http');
  */
 module.exports = () => {
   return (ret, req, res, next) => {
-    if (_.isError(ret)) {
+    if (isError(ret)) {
       logError(req, ret);
       return res.status(500).json({error: 'Interval Server Error'});
     }
@@ -33,20 +33,34 @@ module.exports = () => {
       return res.status(500).json({error: 'invalid status code'});
     }
 
-    if (!onlyOne(ret.data, ret.error)) {
-      return res.status(500).json({error: 'illegal data or error'});
-    }
-
     res.status(ret.code);
 
     if (ret.data) {
       return res.json(ret.data);
-    } else {
+    } else if (ret.error) {
       return res.json({error: ret.error});
+    } else {
+      return res.json();
     }
   };
 };
 
+/**
+ * 是否为内部错误
+ * 
+ * @param {Object} ret 
+ * @returns {Boolean}
+ */
+function isError(ret) {
+  return _.isError(ret) || ret.err || ret.code === 500;
+}
+
+/**
+ * 记录错误日志
+ * 
+ * @param {Object} req 
+ * @param {Object} err 
+ */
 function logError(req, err) {
   if (err instanceof Error) {
     logger.error('\nError Begin\n', err, '\n', req.method, req.url, '\nError End\n');
@@ -55,10 +69,12 @@ function logError(req, err) {
   }
 }
 
-function isCodeOk(code) {
-  return code && http.STATUS_CODES[code];
-}
-
-function onlyOne(a, b) {
-  return (a || b) && (!a || !b);
+/**
+ * 状态码是否合法
+ * 
+ * @param {any} code 
+ * @returns 
+ */
+function isCodeOK(code) {
+  return code && typeof code === 'number' && http.STATUS_CODES[code];
 }

@@ -26,7 +26,13 @@ function catchError(controller) {
   return (req, res, next) => {
     const ret = controller.apply(null, arguments);
     if (ret && typeof ret.then === 'function') {
-      return ret.catch(err => next({code: 500, msg: err.message || err, err: err}));
+      return ret.catch(err => {
+        if (err.code && err.error) {
+          return next(err)
+        } else {
+          return next({code: 500, err, err: err});
+        }
+      });
     } else {
       return ret;
     }
