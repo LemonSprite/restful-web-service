@@ -29,7 +29,7 @@ module.exports = () => {
       return res.status(500).json({error: 'Interval Server Error'});
     }
 
-    if (!isCodeOk(ret.code)) {
+    if (!isCodeOK(ret.code)) {
       return res.status(500).json({error: 'invalid status code'});
     }
 

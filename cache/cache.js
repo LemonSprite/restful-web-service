@@ -1,5 +1,3 @@
-import { exec } from 'child_process';
-
 'use strict';
 
 const Redis = require('ioredis');
@@ -172,7 +170,7 @@ class Cache extends Redis {
 
   setExpire(key, expire) {
     if (!expire) return;
-    
+
     if (typeof expire === 'number' && expire >= 0) {
       return super.expire(key, expire);
     } else {
