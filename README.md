@@ -3,7 +3,7 @@
 |目录|描述|
 |---|---|
 |bin|命令行脚本|
-|cache|缓存访问层（redis)|
+|cache|缓存访问层|
 |config|项目配置文件|
 |controllers|控制器|
 |cron|定时任务|
